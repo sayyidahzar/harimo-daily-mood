@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Harimo — Daily Mood Journal</title>
+
+<!-- Tailwind -->
+<script src="https://cdn.tailwindcss.com"></script>
+<!-- Chart -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- Font -->
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --rose: #ec4899;
+  --rose-soft: rgba(236,72,153,.12);
+  --glass: rgba(255,255,255,.75);
+}
+
+body {
+  font-family: 'Poppins', sans-serif;
+  background: linear-gradient(180deg, #fff1f6, #ffe4ee);
+  color: #374151;
+  transition: background .4s, color .4s;
+}
+
+body.dark {
+  background: linear-gradient(180deg, #18181b, #1f1f1f);
+  color: #f1f1f1;
+}
+
+.glass {
+  background: var(--glass);
+  backdrop-filter: blur(16px);
+  box-shadow: 0 12px 32px rgba(0,0,0,.08);
+}
+
+body.dark .glass {
+  background: rgba(40,40,40,.75);
+}
+
+.day {
+  min-width: 42px;
+  padding: .75rem;
+  border-radius: .75rem;
+  text-align: center;
+  cursor: pointer;
+  font-weight: 500;
+  transition: transform .2s ease, box-shadow .2s ease;
+}
+
+.day:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 18px rgba(0,0,0,.15);
+}
+
+.mood {
+  border-radius: .75rem;
+  padding: .5rem 0;
+  transition: background .2s, transform .2s;
+}
+
+.mood:hover {
+  background: var(--rose-soft);
+  transform: scale(1.08);
+}
+
+button.primary {
+  background: var(--rose);
+  transition: transform .2s, box-shadow .2s, opacity .2s;
+}
+
+button.primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 24px rgba(236,72,153,.35);
+  opacity: .95;
+}
+
+.fade-in {
+  animation: fade .4s ease;
+}
+
+@keyframes fade {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+</style>
+</head>
+
+<body class="min-h-screen">
+
+<header class="fixed top-0 w-full z-20 px-4 py-3 glass flex justify-between items-center">
+  <h1 class="font-semibold text-xl text-pink-600">Harimo</h1>
+  <button id="toggleTheme" class="text-sm px-3 py-1 rounded-full bg-pink-200/70">
+    Mode
+  </button>
+</header>
+
+<main class="max-w-md mx-auto px-4 mt-24 flex flex-col gap-6">
+
+<!-- INPUT -->
+<section class="glass rounded-2xl p-5 fade-in">
+  <h2 class="text-center font-semibold text-pink-600 mb-1">
+    Hari ini rasanya gimana?
+  </h2>
+  <p class="text-center text-xs text-gray-400 mb-4">
+    Pelan-pelan, dengarkan perasaanmu.
+  </p>
+
+  <div class="grid grid-cols-5 gap-2 text-center text-sm">
+    <button class="mood" data-val="1">😡<br><span class="text-xs">Marah</span></button>
+    <button class="mood" data-val="2">😢<br><span class="text-xs">Sedih</span></button>
+    <button class="mood" data-val="3">😐<br><span class="text-xs">Biasa</span></button>
+    <button class="mood" data-val="4">😊<br><span class="text-xs">Senang</span></button>
+    <button class="mood" data-val="5">🤩<br><span class="text-xs">bahagia</span></button>
+  </div>
+
+  <input id="slider" type="range" min="1" max="5" value="3"
+    class="w-full mt-4 accent-pink-400">
+
+  <textarea id="note" rows="4"
+    placeholder="Yang aku rasakan hari ini..."
+    class="w-full mt-3 p-3 rounded-xl border resize-none bg-white/70"></textarea>
+
+  <button id="save"
+    class="primary w-full mt-3 text-white rounded-xl py-2">
+    Simpan Cerita Hari Ini
+  </button>
+</section>
+
+<!-- CALENDAR -->
+<section class="glass rounded-2xl p-5 fade-in">
+  <h2 class="text-center font-semibold text-pink-600 mb-3">
+    Perjalanan Bulan Ini
+  </h2>
+  <div id="calendar" class="flex gap-2 overflow-x-auto"></div>
+</section>
+
+<!-- CHART -->
+<section class="glass rounded-2xl p-5 fade-in">
+  <h2 class="text-center font-semibold text-pink-600 mb-2">
+    Refleksi 7 Hari Terakhir
+  </h2>
+  <canvas id="chart"></canvas>
+</section>
+
+<!-- STATS -->
+<section class="glass rounded-2xl p-5 text-center fade-in">
+  <p id="avg" class="font-medium"></p>
+  <p id="streak" class="text-sm text-gray-400 mt-1"></p>
+</section>
+
+</main>
+
+<!-- MODAL -->
+<div id="modal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-30">
+  <div class="glass rounded-2xl p-5 w-full max-w-sm fade-in">
+    <p id="modalDate" class="text-xs text-gray-400 mb-2"></p>
+    <div class="flex items-center gap-3 mb-3">
+      <span id="modalEmoji" class="text-3xl"></span>
+      <span id="modalMood" class="font-semibold text-pink-600"></span>
+    </div>
+    <p id="modalText" class="text-sm leading-relaxed whitespace-pre-wrap"></p>
+    <button onclick="modal.classList.add('hidden')" class="mt-4 text-pink-500 text-sm">
+      Tutup
+    </button>
+  </div>
+</div>
+
+<script>
+const now = new Date();
+const today = now.getDate();
+const month = now.getMonth();
+const year = now.getFullYear();
+const daysInMonth = new Date(year, month + 1, 0).getDate();
+const key = `harimo-${year}-${month}`;
+let data = JSON.parse(localStorage.getItem(key)) || {};
+
+const emojis = ['😡','😢','😐','😊','😁'];
+const labels = ['Marah','Sedih','Biasa','Senang','Bahagia'];
+
+const calendar = document.getElementById('calendar');
+const slider = document.getElementById('slider');
+const note = document.getElementById('note');
+const modal = document.getElementById('modal');
+
+function renderCalendar() {
+  calendar.innerHTML = '';
+  for (let d = 1; d <= daysInMonth; d++) {
+    const mood = data[d]?.mood || 3;
+    const div = document.createElement('div');
+    const colors = ['bg-pink-100','bg-pink-200','bg-pink-300','bg-pink-400','bg-pink-500'];
+    div.className = `day ${colors[mood-1]} ${d===today?'ring-2 ring-pink-400':''}`;
+    div.innerText = d;
+
+    div.onclick = () => {
+      document.getElementById('modalDate').innerText = `${d}/${month+1}/${year}`;
+      document.getElementById('modalEmoji').innerText = emojis[mood-1];
+      document.getElementById('modalMood').innerText = labels[mood-1];
+      document.getElementById('modalText').innerText = data[d]?.note || 'Tidak ada catatan.';
+      modal.classList.remove('hidden');
+    };
+    calendar.appendChild(div);
+  }
+}
+renderCalendar();
+
+document.querySelectorAll('.mood').forEach(btn => {
+  btn.onclick = () => slider.value = btn.dataset.val;
+});
+
+document.getElementById('save').onclick = () => {
+  data[today] = { mood:+slider.value, note:note.value };
+  localStorage.setItem(key, JSON.stringify(data));
+  note.value = '';
+  renderCalendar();
+  updateStats();
+  updateChart();
+};
+
+function updateStats() {
+  const moods = Object.values(data).map(d=>d.mood);
+  const avg = (moods.reduce((a,b)=>a+b,0)/moods.length||3).toFixed(1);
+  let streak = 0;
+  for (let i=today;i>0;i--) {
+    if (data[i]?.mood>=3) streak++;
+    else break;
+  }
+  document.getElementById('avg').innerText = `Rata-rata perasaan: ${avg}`;
+  document.getElementById('streak').innerText = `Kamu bertahan ${streak} hari dengan perasaan positif`;
+}
+updateStats();
+
+let chart;
+function updateChart() {
+  const labelsC=[], values=[];
+  for (let i=6;i>=0;i--) {
+    const d=new Date(); d.setDate(today-i);
+    labelsC.push(d.getDate());
+    values.push(data[d.getDate()]?.mood||3);
+  }
+  if(chart){chart.data.datasets[0].data=values;chart.update();return;}
+  chart=new Chart(chart=document.getElementById('chart'),{
+    type:'bar',
+    data:{labels:labelsC,datasets:[{data:values,backgroundColor:'rgba(236,72,153,.5)'}]},
+    options:{
+      plugins:{legend:{display:false}},
+      scales:{
+        y:{min:1,max:5,ticks:{stepSize:1},grid:{color:'rgba(0,0,0,.05)'}},
+        x:{grid:{display:false}}
+      }
+    }
+  });
+}
+updateChart();
+
+document.getElementById('toggleTheme').onclick=()=>document.body.classList.toggle('dark');
+</script>
+
+</body>
+</html>
